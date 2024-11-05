@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Money Game</title>
+    <style>
+        /* Previous styles remain the same */
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #container, #moneypers, #upgrade {
+            margin: 20px;
+        }
+        #button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 500px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 12px;
+        }
+        button:disabled {
+            background-color: #dddddd;
+            color: #666666;
+        }
+        .image-button {
+            width: 500px;
+            height: 500px;
+            background-color: transparent;
+            background-image: url('https://png.pngtree.com/png-clipart/20230216/ourmid/pngtree-juicy-burgers-with-a-transparent-background-png-image_6603069.png');
+            background-size: 100% 100%;
+            border: none;
+            cursor: pointer;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-shadow: 0 9px #999;
+        }
+        .image-button:active {
+            background-color: transparent;
+            box-shadow: 0 5px #666;
+            transform: translateY(4px);
+        }
+        .image-button:hover {
+            background-color: transparent;
+        }
+    </style>
+    <script>
+        let count = 1500000;
+        let cost1 = 10, cost2 = 45, cost3 = 15, cost4 = 500, cost5 = 1500;
+        let mps = 0, manager = 1.5, clicks = 1;
+        let M = 0, M2 = 0, M3 = 0, M4 = 0, M5 = 0, upg1 = 0, upgp1 = 40, upgp2 = 100000;
+        let intervalId;
+        let golden_burger = 1;
+        let moneymultiplier = 1;
+        let ablepres = 0;
+
+        // Web Audio API setup
+        let audioContext;
+        let soundBuffers = {};
+
+        // Initialize Web Audio API with multiple sound files
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Define sounds for different actions
+                const sounds = {
+                    click: 'mixkit-hard-typewriter-click-1119.mp3',
+                    purchase: 'purchase-succesful-ingame-230550.mp3',
+                    coffee: 'cash-register-purchase-87313.mp3',
+                    error: 'error-sound-fx.wav',
+                    golden: 'you-win-sequence-2-183949.mp3'
+                };
+
+                // Load all sounds
+                for (const [key, path] of Object.entries(sounds)) {
+                    try {
+                        const response = await fetch(path);
+                        const arrayBuffer = await response.arrayBuffer();
+                        soundBuffers[key] = await audioContext.decodeAudioData(arrayBuffer);
+                    } catch (e) {
+                        console.error(`Failed to load sound ${key}:`, e);
+                    }
+                }
+            } catch (e) {
+                console.error('Web Audio API initialization failed:', e);
+            }
+        }
+
+        // Play sound function with different sounds for different actions
+        function playSound(soundType = 'click', volume = 0.5) {
+            if (!audioContext) {
+                initAudio();
+                return;
+            }
+
+            try {
+                if (soundBuffers[soundType]) {
+                    const source = audioContext.createBufferSource();
+                    source.buffer = soundBuffers[soundType];
+                    
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = volume;
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start(0);
+                }
+            } catch (e) {
+                console.error('Error playing sound:', e);
+            }
+        }
+
+        // Modified action functions to include sound
+        function baction() {
+         if (count >= cost4)  {
+            mps += 35;
+            M4 += 1;
+            count -= cost4;
+            cost4 = 500 * (1.25 ** M4);
+            cost4 = Math.round(cost4 * 10) / 10;
+            buttonText4 = "Boss: " + cost4;
+            playSound('purchase', 0.4);
+            updateAll();
+         }
+        else {
+            playSound('error', 0.4);
+            updateAll();
+        }
+        }
+
+        function caction() {
+            if (count>= cost5) {
+            count -= cost5;
+            mps += 110;
+            M5 += 1;
+            cost5 = 1500 * (1.25 ** M5);
+            cost5 = Math.round(cost5 * 10) / 10;
+            buttonText5 = "CEO: " + cost5;
+            playSound('purchase', 0.4);
+            updateAll();
+            }
+            else {
+                playSound('error', 0.4);
+                updateAll();
+            }
+           
+        }
+
+        function extraAction() {
+            if (count>= cost1) {
+            mps += manager;
+            M += 1;
+            count -= cost1;
+            cost1 = 10 * (1.25 ** M);
+            cost1 = Math.round(cost1 * 10) / 10;
+            buttonText = "Worker: " + cost1;
+            playSound('purchase', 0.4);
+            updateAll();
+            }
+            else {
+                playSound('error', 0.4);
+                updateAll();
+            }
+        }
+
+        function Action2() {
+            if (count>= cost2) {
+            mps += 3;
+            M2 += 1;
+            count -= cost2;
+            cost2 = 45 * (1.25 ** M2);
+            cost2 = Math.round(cost2 * 10) / 10;
+            buttonText2 = "Manager: " + cost2;
+            playSound('manager', 0.4);
+            updateAll();
+            }
+            else {
+                playSound('error', 0.4);
+                updateAll();
+            }
+
+        }
+
+        function clickadd() {
+          if (count>= cost3) {
+            clicks += 2;
+            M3 += 1;
+            count -= cost3;
+            cost3 = 15 * (1.25 ** M3);
+            cost3 = Math.round(cost3 * 10) / 10;
+            buttonText3 = "More click money: " + cost3;
+            playSound('purchase', 0.4);
+            updateAll();
+          }
+            else {
+                playSound('error', 0.4);
+                updateAll();
+            }
+
+        }
+
+        function upgrade1() {
+              if (count>= upgp1) {
+            count -= upgp1;
+            manager = 2;
+            document.getElementById("upgrade1").style.visibility = "hidden";
+            upg1 = 1;
+            playSound('coffee', 0.4);
+            updateAll();
+              }
+                else {
+                    playSound('error', 0.4);
+                    updateAll();
+                }
+        }
+        function upgrade2() {
+            const chesburger = document.querySelector('.image-button');
+            if (count >= upgp2) {
+                count -= upgp2;
+                golden_burger = 2;
+                chesburger.style.backgroundImage = "url('image-removebg-preview.png')"; // New image URL
+                document.getElementById("upgrade2").style.visibility = "hidden";
+                playSound('golden', 0.4);
+                updateAll();
+            } else {
+                playSound('error', 0.4);
+                updateAll();
+            }
+        }
+        // Rest of the functions remain the same
+        function updateButtons(buttons) {
+            buttons.forEach(button => {
+                let element = document.getElementById(button.id);
+                element.textContent = `${button.label}: $${button.cost}`;
+                //element.disabled = count < button.cost;
+            });
+        }
+
+        function updateAll() {
+            updateMoney();
+            updatemps();
+            updateButtons([
+                { id: 'extraButton', label: 'Worker', cost: cost1 },
+                { id: 'Button2', label: 'Manager', cost: cost2 },
+                { id: 'Clickbutton', label: 'More click money', cost: cost3 },
+                { id: 'bossbutton', label: 'Boss', cost: cost4 },
+                { id: 'ceobutton', label: 'CEO', cost: cost5 },
+                { id: 'upgrade1', label: 'Coffee', cost: upgp1 }
+                
+            ]);
+        }
+
+        function updateMoney() {
+            count = Math.round(count * 10) / 10;
+            document.getElementById('money').value = "money: $" + count;
+        }
+
+        function updatemps() {
+            document.getElementById('moneypersecond').value = "money per second: $" + mps;
+            document.getElementById('moneyperclick').value = "money per click: $" + (clicks*golden_burger);
+            document.getElementById('moneymultiplier').value = "money multiplier: $" + moneymultiplier;
+        }
+
+        function addMoney() {
+            count += (clicks*golden_burger);
+            updateAll();
+        }
+
+        function Update() {
+            count = Math.round(count * 10) / 10;
+            updateAll();
+                // Define the colors you want to use
+                const canAffordColor = '#4CAF50';  // Green when you can afford
+                const cannotAffordColor = '#dddddd';  // Grey when you cannot afford
+
+                // Create an array of button configurations
+                const buttons = [
+                    { id: 'extraButton', cost: cost1 },
+                    { id: 'Button2', cost: cost2 },
+                    { id: 'Clickbutton', cost: cost3 },
+                    { id: 'bossbutton', cost: cost4 },
+                    { id: 'ceobutton', cost: cost5 },
+                    { id: 'upgrade1', cost: upgp1 },
+                    { id: 'upgrade2', cost: upgp2 }
+                ];
+
+                // Update each button's color based on whether you can afford it
+                buttons.forEach(button => {
+                    const buttonElement = document.getElementById(button.id);
+                    if (count >= button.cost) {
+                        buttonElement.style.backgroundColor = canAffordColor;
+                       // buttonElement.disabled = false;
+                    } else {
+                        buttonElement.style.backgroundColor = cannotAffordColor;
+                        //buttonElement.disabled = true;
+                    }
+                    if (golden_burger == 1) {
+                        
+                    }
+                });
+              }
+
+        function moneyps() {
+            count += mps;
+            updateAll();
+        }
+
+        setInterval(Update, 1);
+        setInterval(moneyps, 1000);
+    </script>
+</head>
+<body onload="Update()">
+    <div id="moneypers">
+        <input type="text" id="moneypersecond" value="money per second: $0" readonly>
+        <input type="text" id="moneyperclick" value="money per click: $1" readonly>
+        <input type="text" id="moneymultiplier" value="money multiplier: $1" readonly>
+        <input type="text" id="money" value="money: $0" readonly>
+    </div>
+    <div id="upgrade">
+        <button id="upgrade1" onclick="upgrade1()" >
+            Coffee: $45, makes workers make more.
+        </button>
+        <button id="upgrade2" onclick="upgrade2()" >
+      The Golden burger: $100000, makes the burger golden. 
+            
+        </button>
+    </div>
+    <div id="container">
+        <button id="extraButton" onclick="extraAction();" > 0: Worker: $10 </button>
+        <button id="Button2" onclick="Action2()" >Manager: $45</button>
+        <button id="Clickbutton" onclick="clickadd()" >More click money: $15</button>
+        <button id="bossbutton" onclick="baction()" >Boss: $500</button>
+        <button id="ceobutton" onclick="caction()" >CEO: $1500</button>
+    </div>
+    <div id="button">
+        <button class="image-button" onclick="addMoney(); playSound('click');"></button>
+        <img src="https://imgs.search.brave.com/TsetsdE4UTGX75hK8aBPYFzCYaetP0HeLo9xRUZXsyM/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9wbmdm/cmUuY29tL3dwLWNv/bnRlbnQvdXBsb2Fk/cy8xMDAwMDc0ODQw/LTMwMHgzMDAucG5n" width="250" height="333">
+    </div>
+</body>
+</html>
